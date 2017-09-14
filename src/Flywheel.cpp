@@ -138,7 +138,7 @@ double Flywheel::FlywheelValueRight() {
 double Flywheel::FlywheelValueLeft() {
 
 	double flywheel_value_left = -((double) canTalonFlywheelLeft->GetEncVel()
-				/ (double) MINUTE_CONVERSION) * UNITS_PER_ROT;
+			/ (double) MINUTE_CONVERSION) * UNITS_PER_ROT;
 
 	return flywheel_value_left;
 }
@@ -173,7 +173,7 @@ double Flywheel::GetSpeedRight() {
 double Flywheel::GetSpeedLeft() {
 
 	return -((double) canTalonFlywheelLeft->GetEncVel()
-				/ (double) MINUTE_CONVERSION) * UNITS_PER_ROT;
+			/ (double) MINUTE_CONVERSION) * UNITS_PER_ROT;
 
 }
 
@@ -182,19 +182,21 @@ void Flywheel::SpinWrapper(Flywheel *fw, int ref, bool *active) {
 	timerFly->Start();
 
 	while (true) {
+		while (frc::RobotState::IsEnabled()) {
+			std::this_thread::sleep_for(
+					std::chrono::milliseconds(FLYWHEEL_SLEEP_TIME));
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(FLYWHEEL_SLEEP_TIME));
+			while (*active) {
 
-		while (*active) {
+				if (timerFly->HasPeriodPassed(FLYWHEEL_WAIT_TIME)) {
 
-			if (timerFly->HasPeriodPassed(FLYWHEEL_WAIT_TIME)) {
+					timerFly->Reset();
 
-				timerFly->Reset();
+					fw->Spin(ref);
 
-				fw->Spin(ref);
+				}
 
 			}
-
 		}
 	}
 

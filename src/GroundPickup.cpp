@@ -78,6 +78,7 @@ double profileVelocity = 0;
 
 Timer *timerPickup = new Timer();
 
+std::thread PickupThread;
 
 TrapezoidalProfile *intake_profiler = new TrapezoidalProfile(MAX_VELOCITY,
 		MAX_ACCELERATION, TIME_STEP);
@@ -88,7 +89,6 @@ std::vector<std::vector<double>> standard_to_down_profile =
 		intake_profiler->CreateProfile(STANDARD_ANGLE, DOWN_ANGLE);
 std::vector<std::vector<double>> starting_to_standard_profile =
 		intake_profiler->CreateProfile(STARTING_ANGLE, STANDARD_ANGLE);
-
 
 const int DOWN_TO_STANDARD_ANGLE = 0;
 const int STANDARD_TO_DOWN_ANGLE = 1;
@@ -102,8 +102,6 @@ GroundPickup::GroundPickup() {
 
 	canTalonFloorPickupArm = new CANTalon(21);
 	canTalonPickupWheel = new CANTalon(22);
-
-
 
 	ref_pos_ = STARTING_TO_STANDARD_ANGLE;
 
@@ -361,64 +359,65 @@ void GroundPickup::GroundPickupStateMachine() { //arm down, spin in, up arm. dow
 
 void GroundPickup::MoveWrapper(GroundPickup *gp, int *ref_pos) {
 
-	timerPickup->Start();
-
 	std::vector<std::vector<double>> gear_profile = { };
 
 	int gear_index = 0;
 
 	int last_ref = 0;
 
+	timerPickup->Start();
+
 	while (true) { //TODO: need to pass in profiles
+		while (frc::RobotState::IsEnabled()) {
+			std::this_thread::sleep_for(
+					std::chrono::milliseconds(PICKUP_SLEEP_TIME));
 
-		std::this_thread::sleep_for(
-				std::chrono::milliseconds(PICKUP_SLEEP_TIME));
+			switch (*ref_pos) {
 
-		switch (*ref_pos) {
+			case DOWN_TO_STANDARD_ANGLE:
+				std::cout << "0" << std::endl;
+				gear_profile = down_to_standard_profile;
+				if (last_ref != *ref_pos) {
+					gear_index = 0;
+				}
+				break;
 
-		case DOWN_TO_STANDARD_ANGLE:
-			std::cout<<"0"<<std::endl;
-			gear_profile = down_to_standard_profile;
-			if (last_ref != *ref_pos) {
-				gear_index = 0;
+			case STANDARD_TO_DOWN_ANGLE:
+				std::cout << "1" << std::endl;
+				gear_profile = standard_to_down_profile;
+				if (last_ref != *ref_pos) {
+					gear_index = 0;
+				}
+				break;
+
+			case STARTING_TO_STANDARD_ANGLE:
+				std::cout << "2" << std::endl;
+				gear_profile = starting_to_standard_profile;
+				if (last_ref != *ref_pos) {
+					gear_index = 0;
+				}
+				break;
+
 			}
-			break;
 
-		case STANDARD_TO_DOWN_ANGLE:
-			std::cout<<"1"<<std::endl;
-			gear_profile = standard_to_down_profile;
-			if (last_ref != *ref_pos) {
-				gear_index = 0;
-			}
-			break;
+			if (timerPickup->HasPeriodPassed(PICKUP_WAIT_TIME)) { //if enough time has passed to start a new loop
 
-		case STARTING_TO_STANDARD_ANGLE:
-			std::cout<<"2"<<std::endl;
-			gear_profile = starting_to_standard_profile;
-			if (last_ref != *ref_pos) {
-				gear_index = 0;
+				gp->MoveArm(gear_profile.at(0).at(gear_index),
+						gear_profile.at(1).at(gear_index));
+
+				std::cout << "ref" << *ref_pos << std::endl;
+
+				if (gear_index < gear_profile.at(0).size() - 1) {
+					gear_index++;
+				}
+
+				timerPickup->Reset();
+
 			}
-			break;
+
+			last_ref = *ref_pos;
 
 		}
-
-		if (timerPickup->HasPeriodPassed(PICKUP_WAIT_TIME)) { //if enough time has passed to start a new loop
-
-			gp->MoveArm(gear_profile.at(0).at(gear_index),
-					gear_profile.at(1).at(gear_index));
-
-			std::cout<<"ref" << *ref_pos <<std::endl;
-
-			if (gear_index < gear_profile.at(0).size() - 1) {
-				gear_index++;
-			}
-
-			timerPickup->Reset();
-
-		}
-
-		last_ref = *ref_pos;
-
 	}
 
 }

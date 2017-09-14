@@ -281,9 +281,10 @@ public:
 	void TeleopInit() {
 
 		// 1. zero, 2. matlab/motionprofiles 3. vision? 4.vision profiles
-	//	fly_wheel->DisableThreads(); //disable auton threads
+		fly_wheel->DisableThreads(); //disable auton threads
 		fly_wheel->StartThread(); //start teleop threads
 
+		ground_pickup->DisableThreads();
 		ground_pickup->StartThreads();
 
 		drive_controller->DisableAutonThreads();
@@ -467,10 +468,9 @@ public:
 
 	} // TeleopPeriodic
 
-	void DisabledInit() {
+	void DisabledInit() override {
 
 		drive_controller->DisableTeleopThreads();
-
 		drive_controller->DisableAutonThreads();
 
 		fly_wheel->DisableThreads();
@@ -479,6 +479,7 @@ public:
 
 		refT = 0.0;
 		velT = 0.0;
+
 		drive_controller->ZeroI();
 		ground_pickup->ClearIAccum();
 	}

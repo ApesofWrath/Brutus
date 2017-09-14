@@ -14,9 +14,6 @@
 class GroundPickup {
 public:
 
-
-	std::thread PickupThread;
-
 	GroundPickup();
 
 	void GroundPickupStateMachine();
@@ -46,7 +43,7 @@ public:
 	CANTalon *canTalonFloorPickupArm;
 	CANTalon *canTalonPickupWheel;
 
-	const double MAX_SPIN_CURRENT = 6.0; //check
+	const double MAX_SPIN_CURRENT = 6.0;
 
 	const int arm_up_state_h = 0;
 	const int spin_out_state_h = 1;
