@@ -40,10 +40,15 @@ public:
 	void StartThreads();
 	void DisableThreads();
 
+	void SetIndex(int index);
+	int GetIndex();
+
 	CANTalon *canTalonFloorPickupArm;
 	CANTalon *canTalonPickupWheel;
 
 	const double MAX_SPIN_CURRENT = 6.0;
+
+	int gearpickup_index = 0;
 
 	const int arm_up_state_h = 0;
 	const int spin_out_state_h = 1;

@@ -313,11 +313,8 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 			ground_pickup->ground_pickup_state = ground_pickup->arm_up_state_h;
 
-			if (ground_pickup->IsAtPosition()) {
+			state  = wait_for_button_state;
 
-				state  = wait_for_button_state;
-
-			}
 		}
 
 		break;

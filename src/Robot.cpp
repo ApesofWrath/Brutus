@@ -48,30 +48,31 @@ public:
 	const int JOY_THROTTLE = 0;
 	const int JOY_WHEEL = 2;
 
-	const int GEAR_LIGHT_BUTTON = 8;
-	const int BALL_LIGHT_BUTTON = 9;
-	const int GEAR_AND_BALL_LIGHT_BUTTON = 10;
-	const int CLIMB_BUTTON = 12;
-	const int RAIL_OPEN_BUTTON = 778;
-	const int RAIL_CLOSE_BUTTON = 88;
-	const int FIRE_BUTTON = 4;
-	const int POPCORN_BUTTON = 2;
-	const int FIRE_BUTTON_2 = 1;
-	const int STOP_SHOOT_BUTTON = 3;
-	const int GEAR_PICKUP_BUTTON = 7;
-	const int GEAR_SCORE_BUTTON = 8;
-	const int OUTTAKE_BUTTON = 99;
-	const int INTAKE_BUTTON = 99;
-	const int ARM_UP_BUTTON = 99;
-	const int ARM_DOWN_BUTTON = 99;
-	const int RETURN_BUTTON = 6; //returning to wait for button state from climbing or gear
+	const int GEAR_LIGHT_BUTTON = 99;
+	const int BALL_LIGHT_BUTTON = 99;
+	const int GEAR_AND_BALL_LIGHT_BUTTON = 99;
+	const int RAIL_OPEN_BUTTON = 3;
+	const int RAIL_CLOSE_BUTTON = 4;
+	const int FIRE_BUTTON = 99;
+	const int POPCORN_BUTTON = 99;
+	const int FIRE_BUTTON_2 = 99;
+	const int STOP_SHOOT_BUTTON = 99;
+
+	const int GEAR_PICKUP_BUTTON = 1; //
+	const int GEAR_SCORE_BUTTON = 2; //
+	const int OUTTAKE_BUTTON = 9; //
+	const int INTAKE_BUTTON = 10; //
+	const int ARM_UP_BUTTON = 8; //
+	const int ARM_DOWN_BUTTON = 7; //
+	const int RETURN_BUTTON = 11; //
+	const int CLIMB_BUTTON = 12; //
 
 	const int HEADING_CONTROL_BUTTON = 6;
 	const int VISION_TRACK_BUTTON = 5;
 	const int FC_BUTTON = 1;
 	const int REG_BUTTON = 2;
 
-	const int STARTING_POS = PI / 2.0;
+	const int STARTING_POS = 2.7;
 
 	frc::SendableChooser<std::string> autonChooser;
 	frc::SendableChooser<std::string> allianceChooser;
@@ -281,11 +282,12 @@ public:
 	void TeleopInit() {
 
 		// 1. zero, 2. matlab/motionprofiles 3. vision? 4.vision profiles
-		fly_wheel->DisableThreads(); //disable auton threads
-		fly_wheel->StartThread(); //start teleop threads
+	//	fly_wheel->DisableThreads(); //disable auton threads
+	//	fly_wheel->StartThread(); //start teleop threads
 
 		ground_pickup->DisableThreads();
 		ground_pickup->StartThreads();
+		ground_pickup->SetIndex(0);
 
 		drive_controller->DisableAutonThreads();
 		drive_controller->StartTeleopThreads(joyThrottle, joyWheel, &is_heading,
@@ -475,6 +477,8 @@ public:
 
 		fly_wheel->DisableThreads();
 
+		//set gear pickup index to 0, using the gear pickup object in the gear pickup thread.
+
 		ground_pickup->DisableThreads();
 
 		refT = 0.0;
@@ -482,6 +486,12 @@ public:
 
 		drive_controller->ZeroI();
 		ground_pickup->ClearIAccum();
+
+		ground_pickup->SetIndex(0);
+		ground_pickup->canTalonFloorPickupArm->Set(0);
+
+		teleop_state_machine->Initialize();
+
 	}
 
 	void TestPeriodic() { //1-up 2-down 3-wfb 4-arm 5-arm 6-spin negative
@@ -493,6 +503,8 @@ public:
 			state = 2;
 			insert_profile = true;
 		}
+
+		drive_controller->canTalonBackLeft->Set(0.2);
 
 	//	ground_pickup->canTalonPickupWheel->Set(0.25);
 
@@ -518,96 +530,96 @@ public:
 		std::cout << -ground_pickup->GetPos() << "   " << ground_pickup->GetVel() << std::endl;
 
 		//    std::cout << "time: "  << time->Get() << std::endl;
-		switch (state) {
-
-		case 0: //up - not profiled
-
-			//std::cout << "Up" << std::endl;
-
-			if (time->HasPeriodPassed(.01)) {
-				ground_pickup->MoveArm(refT, velT); //ref, profileVelocity
-				time->Reset();
-				last_velT = velT;
-				last_refT = refT;
-				if (refT < 25.0) {
-					refT += (last_velT * .01);
-				}
-				if (velT < 25.0){
-					if (refT < 1.0){
-						velT += 23.0 * .01;
-					}else if (velT > 0.1){
-						velT -= 23.0 * .01;
-					}
-				}
-			}
-			if (joyOp->GetRawButton(2)) {
-				state = 1;
-				time->Reset();
-			}
-
-
-
-
-			break;
-
-		case 1: //down - profiled
-
-			//std::cout << "Down" << std::end
-
-			if (time->HasPeriodPassed(.01)) {
-				ground_pickup->MoveArm(0,0); //ref, profileVelocity
-				time->Reset();
-			}
-			if (joyOp->GetRawButton(1)) {
-				test_ground_pickup_index = 0; //for next time
-				insert_profile = true;
-
-				state = 0;
-				time->Reset();
-			}
-
-			ground_pickup->canTalonPickupWheel->Set(-0.3);
-
-			break;
-
-		case 2: //wait for button state
-
-
-
-			refT = 0.0;
-			velT = 0.0;
-
-			insert_profile = true;
-
-			if (joyOp->GetRawButton(1)) {
-				state = 0;
-				time->Reset();
-
-			} else if (joyOp->GetRawButton(2)) {
-				state = 1;
-				time->Reset();
-			}
-
-		//ground_pickup->canTalonFloorPickupArm->Set(0);
-
-			if (ground_pickup->canTalonPickupWheel->GetOutputCurrent() < 6.0){
-						ground_pickup->canTalonPickupWheel->Set(.3);
-			} else {
-				ground_pickup->canTalonPickupWheel->Set(0);
-				state = 0;
-			}
-
-
-			break;
-
-		case 3:
-
-			ground_pickup->ZeroPos();
-			state = 2;
-
-			break;
-
-		}
+//		switch (state) {
+//
+//		case 0: //up - not profiled
+//
+//			//std::cout << "Up" << std::endl;
+//
+//			if (time->HasPeriodPassed(.01)) {
+//				ground_pickup->MoveArm(refT, velT); //ref, profileVelocity
+//				time->Reset();
+//				last_velT = velT;
+//				last_refT = refT;
+//				if (refT < 25.0) {
+//					refT += (last_velT * .01);
+//				}
+//				if (velT < 25.0){
+//					if (refT < 1.0){
+//						velT += 23.0 * .01;
+//					}else if (velT > 0.1){
+//						velT -= 23.0 * .01;
+//					}
+//				}
+//			}
+//			if (joyOp->GetRawButton(2)) {
+//				state = 1;
+//				time->Reset();
+//			}
+//
+//
+//
+//
+//			break;
+//
+//		case 1: //down - profiled
+//
+//			//std::cout << "Down" << std::end
+//
+//			if (time->HasPeriodPassed(.01)) {
+//				ground_pickup->MoveArm(0,0); //ref, profileVelocity
+//				time->Reset();
+//			}
+//			if (joyOp->GetRawButton(1)) {
+//				test_ground_pickup_index = 0; //for next time
+//				insert_profile = true;
+//
+//				state = 0;
+//				time->Reset();
+//			}
+//
+//			ground_pickup->canTalonPickupWheel->Set(-0.3);
+//
+//			break;
+//
+//		case 2: //wait for button state
+//
+//
+//
+//			refT = 0.0;
+//			velT = 0.0;
+//
+//			insert_profile = true;
+//
+//			if (joyOp->GetRawButton(1)) {
+//				state = 0;
+//				time->Reset();
+//
+//			} else if (joyOp->GetRawButton(2)) {
+//				state = 1;
+//				time->Reset();
+//			}
+//
+//		//ground_pickup->canTalonFloorPickupArm->Set(0);
+//
+//			if (ground_pickup->canTalonPickupWheel->GetOutputCurrent() < 6.0){
+//						ground_pickup->canTalonPickupWheel->Set(.3);
+//			} else {
+//				ground_pickup->canTalonPickupWheel->Set(0);
+//				state = 0;
+//			}
+//
+//
+//			break;
+//
+//		case 3:
+//
+//			ground_pickup->ZeroPos();
+//			state = 2;
+//
+//			break;
+//
+//		}
 
 	}
 

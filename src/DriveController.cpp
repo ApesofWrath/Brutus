@@ -20,13 +20,13 @@ double DYN_MAX_Y_RPM = 625;
 const double MAX_X_RPM = 400; // Max RPM ACTUAL: 330
 const double MAX_YAW_RATE = (19.04 / 625) * MAX_Y_RPM; //max angular velocity divided by the max rpm multiplied by set max rpm
 
-const int DRIVE_SLEEP_TIME = 0;
+const int DRIVE_SLEEP_TIME = 0.00;
 const double DRIVE_WAIT_TIME = 0.01; //10 ms
 
-const int CAN_TALON_FRONT_LEFT = 99; //22 is gear pickup
-const int CAN_TALON_BACK_LEFT = 18;
-const int CAN_TALON_BACK_RIGHT = 36;
-const int CAN_TALON_FRONT_RIGHT = 30;
+const int CAN_TALON_FRONT_LEFT = 18; //22 is gear pickup
+const int CAN_TALON_BACK_LEFT = 32;
+const int CAN_TALON_BACK_RIGHT = 30;
+const int CAN_TALON_FRONT_RIGHT = 36;
 const int CAN_TALON_KICKER = 20;
 
 double l_last_error = 0;
@@ -196,21 +196,21 @@ std::vector<std::vector<double>> vision_profile = { };
 
 TrapezoidalProfile *vision_profiler = new TrapezoidalProfile(15, 5, .01);
 
-DriveController::DriveController(Vision *vis) {
+DriveController::DriveController(Vision *vis) { //front talon id's are set to the back motors (opposite the gear pickup) for encoder reasons
 
 	vision_dc = vis;
 
 	canTalonFrontLeft = new CANTalon(CAN_TALON_FRONT_LEFT);
 
 	canTalonBackLeft = new CANTalon(CAN_TALON_BACK_LEFT);
-	canTalonBackLeft->SetControlMode(CANSpeedController::kFollower);
-	canTalonBackLeft->Set(CAN_TALON_FRONT_LEFT);
+//	canTalonBackLeft->SetControlMode(CANSpeedController::kFollower);
+//	canTalonBackLeft->Set(CAN_TALON_FRONT_LEFT);
 
 	canTalonFrontRight = new CANTalon(CAN_TALON_FRONT_RIGHT);
 
 	canTalonBackRight = new CANTalon(CAN_TALON_BACK_RIGHT);
-	canTalonBackRight->SetControlMode(CANSpeedController::kFollower);
-	canTalonBackRight->Set(CAN_TALON_FRONT_RIGHT);
+//	canTalonBackRight->SetControlMode(CANSpeedController::kFollower);
+//	canTalonBackRight->Set(CAN_TALON_FRONT_RIGHT);
 
 	canTalonKicker = new CANTalon(CAN_TALON_KICKER);
 
@@ -603,11 +603,14 @@ void DriveController::Drive(double ref_kick, double ref_right, double ref_left, 
 
 	canTalonFrontLeft->Set(-total_left); //back cantalons follow front, don't need to set them individually
 	canTalonFrontRight->Set(total_right);
+	canTalonBackRight->Set(total_right);
+	canTalonBackLeft->Set(-total_left);
 	canTalonKicker->Set(-total_kick);
 
 //	std::cout << "P: " << P_LEFT_VEL;
 //	std::cout << " Ref: " << ref_kick;
-//	std::cout << " Left: " << kick_current;
+	std::cout << " Left: " << l_current;
+	std::cout << " Right: " << r_current;
 	//std::cout << " Error: " << kick_error_vel << std::endl;
 //	std::cout << "YAW RATE: " << yaw_rate_current;
 //	std::cout << " ERROR: " << yaw_error << std::endl;
@@ -634,6 +637,11 @@ void DriveController::StopAll() {
 	canTalonFrontLeft->Set(0);
 
 	canTalonFrontRight->Set(0);
+
+
+	canTalonBackLeft->Set(0);
+
+		canTalonBackRight->Set(0);
 
 	canTalonKicker->Set(0);
 }
@@ -737,7 +745,10 @@ bool *is_heading, bool *is_vision, bool *is_fc,
 
 				timerTeleop->Reset();
 
+			//	std::cout<<"here"<< std::endl;
+
 			}
+
 		}
 		while (frc::RobotState::IsEnabled() && !frc::RobotState::IsAutonomous()
 				&& (bool) *is_heading && !(bool) *is_vision) {
@@ -756,25 +767,25 @@ bool *is_heading, bool *is_vision, bool *is_fc,
 		while (frc::RobotState::IsEnabled() && !frc::RobotState::IsAutonomous()
 				&& (bool) *is_vision && !(bool) *is_heading) {
 
-			if (insert_profile == true) { // checks if the loop (vision tracking) is running for the first time, will run only once: every time the tracking button is held.
-
-				vision_profile = vision_profiler->CreateProfile(0, (visionAngle * (PI / 180.0))); //need to pass through radians as the controller calculates in radians
-													   // VisionP expects targets not added to the current position: angle to target only
-			}
-
-			insert_profile = false;
+//			if (insert_profile == true) { // checks if the loop (vision tracking) is running for the first time, will run only once: every time the tracking button is held.
+//
+//				vision_profile = vision_profiler->CreateProfile(0, (visionAngle * (PI / 180.0))); //need to pass through radians as the controller calculates in radians
+//													   // VisionP expects targets not added to the current position: angle to target only
+//			}
+//
+//			insert_profile = false;
 
 			std::this_thread::sleep_for(
 					std::chrono::milliseconds(DRIVE_SLEEP_TIME));
 
 			if (timerTeleop->HasPeriodPassed(DRIVE_WAIT_TIME)) {
 
-				//driveController->VisionP(vision_profile.at(0).at(vision_index));
-
-				if (vision_index < (sizeof(vision_profile.at(0)) - 1)) {
-					vision_index++;
-				}
-
+//				//driveController->VisionP(vision_profile.at(0).at(vision_index));
+//
+//				if (vision_index < (sizeof(vision_profile.at(0)) - 1)) {
+//					vision_index++;
+//				}
+//
 				timerTeleop->Reset();
 
 			}
@@ -799,7 +810,7 @@ void DriveController::DrivePIDWrapper(DriveController *driveController) { //auto
 
 			for (int i = 0; i < sizeof(drive_ref); i++) { //looks through each row and then fills drive_ref with the column here, refills each interval with next set of refs
 
-				drive_ref[i] = full_refs[profile_index][i]; //from SetRefs()
+				drive_ref[i] = full_refs[profile_index][i]; //from SetRef()
 
 			}
 
@@ -820,14 +831,13 @@ void DriveController::DrivePIDWrapper(DriveController *driveController) { //auto
 
 		if (profile_index >= NUM_POINTS) { //stop at the end of the motion profile, this number is set after the creation of the array
 			//so not all of the array will be accessed, only the part before the non-zero points
-			//driveController->StopAll();
 			break;
 		}
 	}
 
 }
 
-void DriveController::StartTeleopThreads(Joystick *JoyThrottle,
+void DriveController::StartTeleopThreads(Joystick *JoyThrottle, //must pass in parameters to wrapper to use them in functions
 		Joystick *JoyWheel,
 		bool *is_heading, bool *is_vision, bool *is_fc) {
 

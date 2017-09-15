@@ -69,7 +69,7 @@ void Autonomous::RunAuton() { // runs continuously through all autonomous modes
 		elevator_au->elevator_state = elevator_au->stop_state_h;
 	}
 
-	if (refs[index][ARM_INDEX] == 1) { //Ground Pickup // arm to "up" position (lower than arm starting position)
+	if (refs[index][ARM_INDEX] == 1) { //Ground Pickup // arm "up" (lower than arm starting position)
 		if (refs[index][INTAKE_INDEX] == 1) {
 			ground_pickup_au->ground_pickup_state =
 					ground_pickup_au->arm_up_spin_in_state_h;

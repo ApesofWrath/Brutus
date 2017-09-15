@@ -8,10 +8,10 @@
 #include <GroundPickup.h>
 #define PI 3.14159265
 
-double DOWN_ANGLE = 0.0; //choose
+double DOWN_ANGLE = 0.0;
 double STANDARD_ANGLE = 2.2; //"up"
 double STARTING_ANGLE = 2.7;
-double SPIN_SPEED = 0.3; //choose
+double SPIN_SPEED = 0.3;
 double ACCEPTABLE_ERROR = 0.2;
 
 double MAX_OUTPUT = 12.0; //volts
@@ -173,7 +173,7 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 
 	else if (ref > GetPos()) { //going up
 
-		Kp = 4.65;
+		Kp = 4.45;
 		Ki = 0.0;
 		Kd = 0.0;
 
@@ -213,7 +213,7 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 	if (GetPos() > 1.3 && GetPos() < 1.5) {
 		calculatedFeedForward = calculatedFeedForward * 1.25;
 	} else if (GetPos() >= 1.5) {
-		calculatedFeedForward = calculatedFeedForward * 1.5;
+		calculatedFeedForward = calculatedFeedForward * 1.35;
 	}
 
 	std::cout << "feed" << calculatedFeedForward << std::endl;
@@ -264,6 +264,8 @@ void GroundPickup::GroundPickupStateMachine() { //arm down, spin in, up arm. dow
 	case arm_up_state:
 
 		ref_pos_ = DOWN_TO_STANDARD_ANGLE;
+
+		StopSpin();
 
 		IsAtPosition();
 
@@ -365,61 +367,77 @@ void GroundPickup::MoveWrapper(GroundPickup *gp, int *ref_pos) {
 
 	int last_ref = 0;
 
+	int profile = 0;
+
 	timerPickup->Start();
 
 	while (true) { //TODO: need to pass in profiles
 		while (frc::RobotState::IsEnabled()) {
+
 			std::this_thread::sleep_for(
 					std::chrono::milliseconds(PICKUP_SLEEP_TIME));
 
-			switch (*ref_pos) {
-
-			case DOWN_TO_STANDARD_ANGLE:
-				std::cout << "0" << std::endl;
-				gear_profile = down_to_standard_profile;
-				if (last_ref != *ref_pos) {
-					gear_index = 0;
-				}
-				break;
-
-			case STANDARD_TO_DOWN_ANGLE:
-				std::cout << "1" << std::endl;
-				gear_profile = standard_to_down_profile;
-				if (last_ref != *ref_pos) {
-					gear_index = 0;
-				}
-				break;
-
-			case STARTING_TO_STANDARD_ANGLE:
-				std::cout << "2" << std::endl;
-				gear_profile = starting_to_standard_profile;
-				if (last_ref != *ref_pos) {
-					gear_index = 0;
-				}
-				break;
-
-			}
-
 			if (timerPickup->HasPeriodPassed(PICKUP_WAIT_TIME)) { //if enough time has passed to start a new loop
 
-				gp->MoveArm(gear_profile.at(0).at(gear_index),
-						gear_profile.at(1).at(gear_index));
+				std::cout<<"INDEX: "<< gp->gearpickup_index <<std::endl;
+				//std::cout<<"Target: "<< gear_profile.at(0).at(gp->gearpickup_index) <<std::endl;
 
-				std::cout << "ref" << *ref_pos << std::endl;
+				profile = *ref_pos;
 
-				if (gear_index < gear_profile.at(0).size() - 1) {
-					gear_index++;
+				switch (profile) {
+
+				case DOWN_TO_STANDARD_ANGLE:
+					std::cout << "0" << std::endl;
+					gear_profile = down_to_standard_profile;
+					if (last_ref != profile) {
+						gp->SetIndex(0);
+					}
+					break;
+
+				case STANDARD_TO_DOWN_ANGLE:
+					std::cout << "1" << std::endl;
+					gear_profile = standard_to_down_profile;
+					if (last_ref != profile) {
+						gp->SetIndex(0);
+					}
+					break;
+
+				case STARTING_TO_STANDARD_ANGLE:
+					std::cout << "2" << std::endl;
+					gear_profile = starting_to_standard_profile;
+					if (last_ref != profile) {
+						gp->SetIndex(0);
+					}
+					break;
+
+				}
+				last_ref = profile;
+
+				gp->MoveArm(gear_profile.at(0).at(gp->gearpickup_index),
+						gear_profile.at(1).at(gp->gearpickup_index)); //took this out to test
+				std::cout<<"Target: "<< gear_profile.at(0).at(gp->gearpickup_index) <<std::endl;
+
+				//std::cout << "ref" << *ref_pos << std::endl;
+
+				if (gp->gearpickup_index < gear_profile.at(0).size() - 1) {
+					gp->gearpickup_index++;
 				}
 
 				timerPickup->Reset();
 
 			}
 
-			last_ref = *ref_pos;
-
 		}
 	}
 
+}
+
+void GroundPickup::SetIndex(int index) {
+	gearpickup_index = index;
+}
+
+int GroundPickup::GetIndex() {
+	return gearpickup_index;
 }
 
 void GroundPickup::StartThreads() {
