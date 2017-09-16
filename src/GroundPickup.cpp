@@ -10,7 +10,7 @@
 
 double DOWN_ANGLE = 0.0;
 double STANDARD_ANGLE = 2.2; //"up"
-double STARTING_ANGLE = 2.7;
+double STARTING_ANGLE = 2.8;
 double SPIN_SPEED = 0.3;
 double ACCEPTABLE_ERROR = 0.2;
 
@@ -169,11 +169,12 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 		Ki = 0.00;
 		Kd = 0.00;
 
+		//TODO add some scheduling for the start
 	}
 
 	else if (ref > GetPos()) { //going up
 
-		Kp = 4.45;
+		Kp = 4.55;
 		Ki = 0.0;
 		Kd = 0.0;
 
@@ -210,18 +211,21 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 	calculatedFeedForward = ((9.8 * cos(GetPos()) * 2.8 * .25 * 0.0845)
 			/ (G * 0.00595)) + (GetVel() / 164.0);
 
-	if (GetPos() > 1.3 && GetPos() < 1.5) {
+	if ((GetPos() > 1.3 && GetPos() < 1.5 )||(GetPos() > 2.0 && GetPos() < 2.2 )) { //needs to be even on both sides of the vertical
 		calculatedFeedForward = calculatedFeedForward * 1.25;
-	} else if (GetPos() >= 1.5) {
+	} else if (GetPos() >= 1.5 && GetPos() <= 2.0) {
 		calculatedFeedForward = calculatedFeedForward * 1.35;
 	}
 
 	std::cout << "feed" << calculatedFeedForward << std::endl;
-	if (GetPos() < PI / 2.0) {
-		if (ref == 0) {
-			calculatedFeedForward = 0;
+
+	if (GetPos() < (PI / 2.0)) {
+		if (ref <= 0.25) {
+			calculatedFeedForward = 0.0;
 		}
 	}
+
+
 
 	output = P + I + D + (Kv * profileVelocity) + calculatedFeedForward; //output is in voltage, how it is modeled in matlab
 
@@ -231,14 +235,18 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 		output = MIN_OUTPUT;
 	}
 
-	output = output / 12.0; //only works if max output is positive, scaling down -1 to 1
+	output = output / 12.0; //only works if max output is positive // scaling down -1 to 1
 
-	std::cout << "pos" << GetPos();
-	std::cout << "prof" << profileVelocity;
+	if(GetPos() > 2.5 && output > 0) { //soft limit
+			output = 0;
+		}
+
+//	std::cout << "pos" << GetPos();
+//	std::cout << "prof" << profileVelocity;
 	canTalonFloorPickupArm->Set(output);
 
-	std::cout << "out" << output;
-	std::cout << "error" << error << std::endl;
+//	std::cout << "out" << output;
+//	std::cout << "error" << error << std::endl;
 	last_error = error;
 
 }
@@ -291,6 +299,8 @@ void GroundPickup::GroundPickupStateMachine() { //arm down, spin in, up arm. dow
 
 	case arm_down_state:
 
+		StopSpin();
+
 		ref_pos_ = STANDARD_TO_DOWN_ANGLE;
 
 		IsAtPosition();
@@ -339,6 +349,9 @@ void GroundPickup::GroundPickupStateMachine() { //arm down, spin in, up arm. dow
 
 	case arm_start_state:
 
+
+		StopSpin();
+
 		ref_pos_ = STARTING_TO_STANDARD_ANGLE;
 
 		IsAtPosition();
@@ -347,7 +360,7 @@ void GroundPickup::GroundPickupStateMachine() { //arm down, spin in, up arm. dow
 
 	case arm_start_spin_in_state:
 
-		ref_pos_ = STARTING_ANGLE;
+		ref_pos_ = STARTING_TO_STANDARD_ANGLE;
 
 		SpinIn();
 

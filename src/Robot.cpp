@@ -66,6 +66,7 @@ public:
 	const int ARM_DOWN_BUTTON = 7; //
 	const int RETURN_BUTTON = 11; //
 	const int CLIMB_BUTTON = 12; //
+	const int ALTERNATE_LAW = 3; //
 
 	const int HEADING_CONTROL_BUTTON = 6;
 	const int VISION_TRACK_BUTTON = 5;
@@ -497,14 +498,14 @@ public:
 	void TestPeriodic() { //1-up 2-down 3-wfb 4-arm 5-arm 6-spin negative
 
 		//std::cout << vision_->findAzimuth() << std::endl;
-		std::cout << "state" << state << std::endl;
+	//	std::cout << "state" << state << std::endl;
 
-		if (joyOp->GetRawButton(3)) { //can go to state 2 at any time
-			state = 2;
-			insert_profile = true;
-		}
+	///	if (joyOp->GetRawButton(3)) { //can go to state 2 at any time
+	//		state = 2;
+	//	insert_profile = true;
+		//}
 
-		drive_controller->canTalonBackLeft->Set(0.2);
+	//	drive_controller->canTalonBackLeft->Set(0.2);
 
 	//	ground_pickup->canTalonPickupWheel->Set(0.25);
 
@@ -525,9 +526,9 @@ public:
 
 		//}
 
-		std::cout << "current" << ground_pickup->canTalonPickupWheel->GetOutputCurrent() << std::endl;
+		std::cout << "posi" << ground_pickup->canTalonFloorPickupArm->GetEncPosition() << std::endl;
 	//	ground_pickup->canTalonFloorPickupArm->Set(1.0);
-		std::cout << -ground_pickup->GetPos() << "   " << ground_pickup->GetVel() << std::endl;
+	//	std::cout << -ground_pickup->GetPos() << "   " << ground_pickup->GetVel() << std::endl;
 
 		//    std::cout << "time: "  << time->Get() << std::endl;
 //		switch (state) {

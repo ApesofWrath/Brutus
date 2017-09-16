@@ -76,8 +76,8 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 	}
 
-	SmartDashboard::PutNumber("Right FlyWheel Speed", fly_wheel->GetSpeedRight());
-	SmartDashboard::PutNumber("Left FlyWheel Speed", fly_wheel->GetSpeedLeft());
+	//SmartDashboard::PutNumber("Right FlyWheel Speed", fly_wheel->GetSpeedRight());
+	//SmartDashboard::PutNumber("Left FlyWheel Speed", fly_wheel->GetSpeedLeft());
 
 	if (is_popcorn) {
 
@@ -98,13 +98,12 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 		gear_rail->gear_rail_state = gear_rail->close_state_h;
 	}
 
+	//none of these four if statements can run at once
 	if (is_intake) {
 
 		ground_pickup->ground_pickup_state = ground_pickup->spin_in_state_h;
 
-	}
-
-	if (is_outtake) {
+	} else if (is_outtake) {
 
 		ground_pickup->ground_pickup_state = ground_pickup->spin_out_state_h;
 	}
@@ -113,9 +112,7 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 		ground_pickup->ground_pickup_state = ground_pickup->arm_up_state_h;
 
-	}
-
-	if (is_arm_down) {
+	} else if (is_arm_down) {
 
 		ground_pickup->ground_pickup_state = ground_pickup->arm_down_state_h;
 
@@ -301,7 +298,11 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 		SmartDashboard::PutString("State", "Gear In");
 
+		std::cout << "current" << ground_pickup->canTalonPickupWheel->GetOutputCurrent() << std::endl;
+
 		if(return_button) {
+
+			ground_pickup->ground_pickup_state = ground_pickup->arm_down_state_h; //safest controller wwith no spin
 
 			state = wait_for_button_state;
 
@@ -325,6 +326,8 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 		if(return_button) {
 
+			ground_pickup->ground_pickup_state = ground_pickup->arm_down_state_h; //safest controller wwith no spin
+
 			state = wait_for_button_state;
 
 		}
@@ -333,7 +336,7 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 		if(ground_pickup->IsAtPosition()) {
 
-			ground_pickup->ground_pickup_state = ground_pickup->arm_down_state_h; //no spin
+			ground_pickup->ground_pickup_state = ground_pickup->arm_up_state_h;
 			state = wait_for_button_state;
 
 		}

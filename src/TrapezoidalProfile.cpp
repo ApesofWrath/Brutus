@@ -19,7 +19,6 @@ double interval = 0.0;
 
 std::vector<double> positions = { 0 }; //first points will be 0
 std::vector<double> velocity = { 0 };
-std::vector<std::vector<double> > matrix;
 
 TrapezoidalProfile::TrapezoidalProfile(double max_vel, double max_acc,
 		double time_step) {
@@ -43,6 +42,8 @@ std::vector<std::vector<double>> TrapezoidalProfile::CreateProfile(
 	double time = 0.0;
 
 	int counter = 0;
+
+	std::vector<std::vector<double> > matrix; //new matrix every time because .push_back adds rows
 
 	if (ref >= init_pos) {
 		while (pos < ref) {
@@ -105,8 +106,8 @@ std::vector<std::vector<double>> TrapezoidalProfile::CreateProfile(
 		}
 	}
 
-	matrix.push_back(positions); //first vector
-	matrix.push_back(velocity); //second vector
+	matrix.push_back(positions); //first vector,  row 0
+	matrix.push_back(velocity); //second vector, row 1
 
 	return matrix;
 

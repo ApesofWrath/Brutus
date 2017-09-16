@@ -70,10 +70,10 @@ void Autonomous::RunAuton() { // runs continuously through all autonomous modes
 	}
 
 	if (refs[index][ARM_INDEX] == 1) { //Ground Pickup // arm "up" (lower than arm starting position)
-		if (refs[index][INTAKE_INDEX] == 1) {
+		if (refs[index][INTAKE_INDEX] == 2) {
 			ground_pickup_au->ground_pickup_state =
 					ground_pickup_au->arm_up_spin_in_state_h;
-		} else if (refs[index][INTAKE_INDEX] == 2) {
+		} else if (refs[index][INTAKE_INDEX] == 1) {
 			ground_pickup_au->ground_pickup_state =
 					ground_pickup_au->arm_up_spin_out_state_h;
 		} else {
@@ -83,10 +83,10 @@ void Autonomous::RunAuton() { // runs continuously through all autonomous modes
 	}
 
 	if (refs[index][ARM_INDEX] == 0) { //Ground Pickup // arm down
-		if (refs[index][INTAKE_INDEX] == 1) {
+		if (refs[index][INTAKE_INDEX] == 2) {
 			ground_pickup_au->ground_pickup_state =
 					ground_pickup_au->arm_down_spin_in_state_h;
-		} else if (refs[index][INTAKE_INDEX] == 2) {
+		} else if (refs[index][INTAKE_INDEX] == 1) {
 			ground_pickup_au->ground_pickup_state =
 					ground_pickup_au->arm_down_spin_out_state_h;
 		} else {
@@ -95,8 +95,8 @@ void Autonomous::RunAuton() { // runs continuously through all autonomous modes
 		}
 	}
 
-	if (refs[index][ARM_INDEX] == 2) { //Ground Pickup //arm to starting height
-		if (refs[index][INTAKE_INDEX] == 1) {
+	if (refs[index][ARM_INDEX] == 2) { //Ground Pickup //arm from starting to standard height
+		if (refs[index][INTAKE_INDEX] == 2) {
 			ground_pickup_au->ground_pickup_state =
 					ground_pickup_au->arm_start_spin_in_state_h;
 		} else {
