@@ -40,9 +40,9 @@ double kick_last_error_vel = 0;
 
 //CHANGEABLESTART
 
-const double K_P_YAW_T = 6.0;
+const double K_P_YAW_T = 0.0; //4 //joystick now cubed
 
-const double K_P_YAW_AU = 20.0;
+const double K_P_YAW_AU = 0.0; //10
 const double K_D_YAW_AU = 0.0;
 
 const double K_P_YAW_H_VEL = 13.0;
@@ -51,21 +51,21 @@ const double K_P_YAW_HEADING_POS = 9.0;
 
 const double K_D_VISION_POS = 0.0;
 
-const double K_P_LEFT_VEL = 0.004220;
+const double K_P_LEFT_VEL = 0.0; //0.004220; //0.004
 const double K_D_LEFT_VEL = 0.0;
 const double K_F_LEFT_VEL = 1.0 / 625.0;
 double P_LEFT_VEL = 0;
 double D_LEFT_VEL = 0;
 double d_left_vel = 0; //dynamic value
 
-const double K_P_RIGHT_VEL = 0.004220;
+const double K_P_RIGHT_VEL = 0.0; //0.004220; //0.004
 const double K_D_RIGHT_VEL = 0.0;
 const double K_F_RIGHT_VEL = 1.0 / 625.0;
 double P_RIGHT_VEL = 0;
 double D_RIGHT_VEL = 0;
 double d_right_vel = 0; //dynamic value
 
-const double K_P_KICK_VEL = .00365; //0.00311
+const double K_P_KICK_VEL = 0.0; //.00365; //0.00311
 const double K_D_KICK_VEL = 0.0;
 const double K_F_KICK_VEL = 1.0 / 400.0;
 double P_KICK_VEL = 0;
@@ -153,7 +153,7 @@ const int NUM_INDEX = 15;
 //double last_drive_ref[NUM_INDEX] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 //		0.0, 0.0, 0.0, 0.0};
 double drive_ref[NUM_INDEX] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 double full_refs[NUM_POINTS][NUM_INDEX];
 
 double acceptable_yaw_error = .22;
@@ -223,10 +223,11 @@ DriveController::DriveController(Vision *vis) { //front talon id's are set to th
 void DriveController::HDrive(Joystick *JoyThrottle, Joystick *JoyWheel,
 bool *is_fc) { //finds targets for teleop
 
-	double forward = -1.0 * JoyThrottle->GetY();
-	double strafe = JoyThrottle->GetX();
-	double current_yaw = fmod((-1.0 * ahrs->GetYaw() * (PI / 180.0)),
-			(2.0 * PI));
+	double forward = -1.0 * (JoyThrottle->GetY());
+	double strafe = (JoyThrottle->GetX());
+	double current_yaw = (fmod((-1.0 * ahrs->GetYaw() * (PI / 180.0)),
+			(2.0 * PI)))
+			* (fmod((-1.0 * ahrs->GetYaw() * (PI / 180.0)), (2.0 * PI))); //even less sensitive
 
 	if ((bool) *is_fc) {
 
@@ -238,7 +239,7 @@ bool *is_fc) { //finds targets for teleop
 
 		double psi = std::atan2(forward, strafe);
 
-		double magnitude = sqrt((forward * forward) + (strafe * strafe));
+		double magnitude = sqrt((forward) + (strafe));
 
 		forward = magnitude * (std::sin(psi - current_yaw));
 		strafe = magnitude * (std::cos(psi - current_yaw));
@@ -517,7 +518,8 @@ void DriveController::AutoVisionTrack() { //aims the robot and then drive forwar
 
 }
 
-void DriveController::Drive(double ref_kick, double ref_right, double ref_left, //teleop
+void DriveController::Drive(double ref_kick, double ref_right,
+		double ref_left, //teleop
 		double ref_yaw, double k_p_right, double k_p_left, double k_p_kick,
 		double k_p_yaw, double k_d_yaw, double k_d_right, double k_d_left,
 		double k_d_kick, double target_vel_left, double target_vel_right,
@@ -544,7 +546,7 @@ void DriveController::Drive(double ref_kick, double ref_right, double ref_left, 
 	ref_right += yaw_output; //left should be positive
 	ref_left -= yaw_output;
 
-	if (abs(ref_kick) < 25) {
+	if (std::abs(ref_kick) < 25) {
 		ref_kick = 0;
 	}
 
@@ -609,8 +611,8 @@ void DriveController::Drive(double ref_kick, double ref_right, double ref_left, 
 
 //	std::cout << "P: " << P_LEFT_VEL;
 //	std::cout << " Ref: " << ref_kick;
-	std::cout << " Left: " << l_current;
-	std::cout << " Right: " << r_current;
+//	std::cout << " Left: " << l_current;
+//	std::cout << " Right: " << r_current;
 	//std::cout << " Error: " << kick_error_vel << std::endl;
 //	std::cout << "YAW RATE: " << yaw_rate_current;
 //	std::cout << " ERROR: " << yaw_error << std::endl;
@@ -638,10 +640,9 @@ void DriveController::StopAll() {
 
 	canTalonFrontRight->Set(0);
 
-
 	canTalonBackLeft->Set(0);
 
-		canTalonBackRight->Set(0);
+	canTalonBackRight->Set(0);
 
 	canTalonKicker->Set(0);
 }
@@ -737,7 +738,8 @@ bool *is_heading, bool *is_vision, bool *is_fc,
 		while (frc::RobotState::IsEnabled() && !frc::RobotState::IsAutonomous()
 				&& !(bool) *is_heading && !(bool) *is_vision) {
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(DRIVE_SLEEP_TIME));
+			std::this_thread::sleep_for(
+					std::chrono::milliseconds(DRIVE_SLEEP_TIME));
 
 			if (timerTeleop->HasPeriodPassed(DRIVE_WAIT_TIME)) {
 
@@ -745,7 +747,7 @@ bool *is_heading, bool *is_vision, bool *is_fc,
 
 				timerTeleop->Reset();
 
-			//	std::cout<<"here"<< std::endl;
+				//	std::cout<<"here"<< std::endl;
 
 			}
 

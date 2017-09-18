@@ -98,7 +98,9 @@ void Autonomous::RunAuton() { // runs continuously through all autonomous modes
 	if (refs[index][ARM_INDEX] == 2) { //Ground Pickup //arm from starting to standard height
 		if (refs[index][INTAKE_INDEX] == 2) {
 			ground_pickup_au->ground_pickup_state =
-					ground_pickup_au->arm_start_spin_in_state_h;
+					ground_pickup_au->arm_down_spin_in_state_h;
+		//	std::cout << "HERE" << std::endl;
+
 		} else {
 			ground_pickup_au->ground_pickup_state =
 					ground_pickup_au->arm_start_state_h;

@@ -67,13 +67,15 @@ public:
 	const int RETURN_BUTTON = 11; //
 	const int CLIMB_BUTTON = 12; //
 	const int ALTERNATE_LAW = 3; //
+	const int ZERO_ARM = 5;
+	const int AT_POSITION = 6;
 
 	const int HEADING_CONTROL_BUTTON = 6;
 	const int VISION_TRACK_BUTTON = 5;
 	const int FC_BUTTON = 1;
 	const int REG_BUTTON = 2;
 
-	const int STARTING_POS = 2.7;
+	const int STARTING_POS = 2.5;
 
 	frc::SendableChooser<std::string> autonChooser;
 	frc::SendableChooser<std::string> allianceChooser;
@@ -111,9 +113,16 @@ public:
 	int test_ground_pickup_index = 0;
 
 	bool is_heading; //used in hdrive wrapper to call the right drive function
-	bool is_vision;bool is_fc;
+	bool is_vision;
+	bool is_fc;
 
-	bool blue = false;bool red = false;
+	bool blue = false;
+	bool red = false;
+
+	bool manual_pickup;
+	const int MANUAL = 0;
+	const int CONTROLLER = 1;
+	int pickup_mode;
 
 	double refT = 0.0;
 	double velT = 0.0;
@@ -121,6 +130,8 @@ public:
 	double last_velT = 0.0;
 
 	Timer *time = new Timer();
+
+	int in = 0;
 
 	void RobotInit() {
 
@@ -179,6 +190,9 @@ public:
 		is_heading = false;
 		is_fc = true;
 
+		manual_pickup = false;
+		pickup_mode = 1;
+
 		compressor = new Compressor(31);
 		compressor->SetClosedLoopControl(true);
 
@@ -236,7 +250,7 @@ public:
 
 		} else if (autoSelected == driveForward) {
 
-			autonomous_->FillProfile("/home/lvuser/Drive_Forward_Profile.csv");
+			autonomous_->FillProfile("/home/lvuser/drive_forward_arm_down.csv"); //Drive_Forward_Profile
 
 		} else if (autoSelected == shootAuton) {
 
@@ -289,6 +303,7 @@ public:
 		ground_pickup->DisableThreads();
 		ground_pickup->StartThreads();
 		ground_pickup->SetIndex(0);
+		ground_pickup->SetPos(0.0);
 
 		drive_controller->DisableAutonThreads();
 		drive_controller->StartTeleopThreads(joyThrottle, joyWheel, &is_heading,
@@ -297,7 +312,7 @@ public:
 		drive_controller->ahrs->ZeroYaw();
 		drive_controller->ZeroI();
 
-		ground_pickup->ZeroPos(); //TODO: take this out
+		//ground_pickup->ZeroPos(); //TODO: take this out
 
 		teleop_state_machine->Initialize(); //sets the state back to init
 
@@ -326,6 +341,8 @@ public:
 		bool arm_down_button = joyOp->GetRawButton(ARM_DOWN_BUTTON);
 		bool popcorn_button = joyOp->GetRawButton(POPCORN_BUTTON);
 		bool second_fire_button = joyOp->GetRawButton(FIRE_BUTTON_2);
+		bool zero_arm_button = joyOp->GetRawButton(ZERO_ARM);
+		bool is_at_pos_button = joyOp->GetRawButton(AT_POSITION);
 
 		bool gear_light_button = joyOp->GetRawButton(GEAR_LIGHT_BUTTON);
 		bool ball_light_button = joyOp->GetRawButton(BALL_LIGHT_BUTTON);
@@ -336,7 +353,7 @@ public:
 				fire_button, climb_button, return_button, popcorn_button,
 				second_fire_button, stop_shoot_button, gear_pickup_button,
 				gear_score_button, intake_button, outtake_button, arm_up_button,
-				arm_down_button);
+				arm_down_button, is_at_pos_button);
 
 		//light_->LEDStateMachine(gear_light_button, ball_light_button,
 		//		gear_and_ball_light_button);
@@ -347,13 +364,61 @@ public:
 		climber_->ClimberStateMachine();
 		ground_pickup->GroundPickupStateMachine();
 
+		if(zero_arm_button) {
+			ground_pickup->ZeroPos();
+		}
+
 		//START DRIVE CODE
 		const int HDrive = 0;
 		const int Heading = 1;
 		const int Vis = 2;
 
+		const int MANUAL = 0;
+		const int CONTROLLER = 1;
+
 		bool headingDrive = joyWheel->GetRawButton(HEADING_CONTROL_BUTTON);
 		bool visionTrack = joyWheel->GetRawButton(VISION_TRACK_BUTTON);
+
+
+//		std::cout<<manual_pickup<<std::endl;
+
+//		switch (pickup_mode){
+//
+//		case MANUAL:
+//
+//			manual_pickup = true;
+//
+//			std::cout<<"HERE"<<std::endl;
+//
+//			if (joyOp->GetRawButton(4)){
+//
+//				ground_pickup->SetIndex(0);
+//
+//				ground_pickup->ground_pickup_state= ground_pickup->arm_up_state_h;
+//
+//				pickup_mode = CONTROLLER;
+//
+//			}
+//
+//			break;
+//
+//		case CONTROLLER:
+//
+//			manual_pickup = false;
+//
+//			if (joyOp->GetRawButton(ALTERNATE_LAW)){
+//
+//				pickup_mode = MANUAL;
+//
+//			}
+//
+//			break;
+//
+//
+//		}
+
+
+
 
 		switch (driveMode) {
 
@@ -489,7 +554,7 @@ public:
 		ground_pickup->ClearIAccum();
 
 		ground_pickup->SetIndex(0);
-		ground_pickup->canTalonFloorPickupArm->Set(0);
+		ground_pickup->canTalonFloorPickupArm->Set(0.0);
 
 		teleop_state_machine->Initialize();
 
@@ -526,7 +591,12 @@ public:
 
 		//}
 
-		std::cout << "posi" << ground_pickup->canTalonFloorPickupArm->GetEncPosition() << std::endl;
+		if (in == 0){
+			ground_pickup->SetPos(0);
+		}
+		in++;
+
+		std::cout << "posi" << ground_pickup->GetPos() << std::endl;
 	//	ground_pickup->canTalonFloorPickupArm->Set(1.0);
 	//	std::cout << -ground_pickup->GetPos() << "   " << ground_pickup->GetVel() << std::endl;
 

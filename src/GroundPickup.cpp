@@ -10,9 +10,9 @@
 
 double DOWN_ANGLE = 0.0;
 double STANDARD_ANGLE = 2.2; //"up"
-double STARTING_ANGLE = 2.8;
-double SPIN_SPEED = 0.3;
-double ACCEPTABLE_ERROR = 0.2;
+double STARTING_ANGLE = 2.5;
+double SPIN_SPEED = 0.35;
+double ACCEPTABLE_ERROR = 0.09;
 
 double MAX_OUTPUT = 12.0; //volts
 double MIN_OUTPUT = -12.0;
@@ -74,7 +74,7 @@ double last_vel_ref = 0.0;
 double last_pos_ref = 0.0;
 
 int profileIndex = 0;
-double profileVelocity = 0;
+double profileVelocity = 0.0;
 
 Timer *timerPickup = new Timer();
 
@@ -132,9 +132,11 @@ void GroundPickup::ZeroPos() {
 	canTalonFloorPickupArm->SetEncPosition(0);
 }
 
-void GroundPickup::SetPos(int pos) {
+void GroundPickup::SetPos(double pos) {
 
-	canTalonFloorPickupArm->SetEncPosition(pos);
+	double set_pos = (-1.0 * pos * (double) ENCODER_TICKS) / (NUM_RADS);
+
+	canTalonFloorPickupArm->SetEncPosition(set_pos);
 
 }
 
@@ -165,7 +167,7 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 
 	if (ref <= GetPos()) { //going down
 
-		Kp = 0.5;
+		Kp = 0.55;
 		Ki = 0.00;
 		Kd = 0.00;
 
@@ -211,21 +213,18 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 	calculatedFeedForward = ((9.8 * cos(GetPos()) * 2.8 * .25 * 0.0845)
 			/ (G * 0.00595)) + (GetVel() / 164.0);
 
-	if ((GetPos() > 1.3 && GetPos() < 1.5 )||(GetPos() > 2.0 && GetPos() < 2.2 )) { //needs to be even on both sides of the vertical
+	if ((GetPos() > 1.3 && GetPos() < 1.5)
+			|| (GetPos() > 2.0 && GetPos() < 2.2)) { //needs to be even on both sides of the vertical
+		calculatedFeedForward = calculatedFeedForward * 1.15;
+	} else if (GetPos() >= 1.5 && GetPos() <= 2.0) { //try changing these
 		calculatedFeedForward = calculatedFeedForward * 1.25;
-	} else if (GetPos() >= 1.5 && GetPos() <= 2.0) {
-		calculatedFeedForward = calculatedFeedForward * 1.35;
 	}
 
-	std::cout << "feed" << calculatedFeedForward << std::endl;
-
 	if (GetPos() < (PI / 2.0)) {
-		if (ref <= 0.25) {
+		if (ref < .25) {
 			calculatedFeedForward = 0.0;
 		}
 	}
-
-
 
 	output = P + I + D + (Kv * profileVelocity) + calculatedFeedForward; //output is in voltage, how it is modeled in matlab
 
@@ -237,16 +236,18 @@ void GroundPickup::MoveArm(double ref, double profileVelocity) { //position and 
 
 	output = output / 12.0; //only works if max output is positive // scaling down -1 to 1
 
-	if(GetPos() > 2.5 && output > 0) { //soft limit
-			output = 0;
-		}
+	if (GetPos() > 2.5 && output > 0.0) { //soft limit
+		output = 0.0;
+	}
 
-//	std::cout << "pos" << GetPos();
-//	std::cout << "prof" << profileVelocity;
+	if (GetPos() <= (PI / 2.0)) {
+		if (ref <= 0.28) { //.25
+			output = 0.0;
+		}
+	}
+
 	canTalonFloorPickupArm->Set(output);
 
-//	std::cout << "out" << output;
-//	std::cout << "error" << error << std::endl;
 	last_error = error;
 
 }
@@ -349,7 +350,6 @@ void GroundPickup::GroundPickupStateMachine() { //arm down, spin in, up arm. dow
 
 	case arm_start_state:
 
-
 		StopSpin();
 
 		ref_pos_ = STARTING_TO_STANDARD_ANGLE;
@@ -369,7 +369,6 @@ void GroundPickup::GroundPickupStateMachine() { //arm down, spin in, up arm. dow
 		break;
 
 	}
-
 }
 
 void GroundPickup::MoveWrapper(GroundPickup *gp, int *ref_pos) {
@@ -384,7 +383,7 @@ void GroundPickup::MoveWrapper(GroundPickup *gp, int *ref_pos) {
 
 	timerPickup->Start();
 
-	while (true) { //TODO: need to pass in profiles
+	while (true) { //TODO: need to pass in profile
 		while (frc::RobotState::IsEnabled()) {
 
 			std::this_thread::sleep_for(
@@ -392,7 +391,7 @@ void GroundPickup::MoveWrapper(GroundPickup *gp, int *ref_pos) {
 
 			if (timerPickup->HasPeriodPassed(PICKUP_WAIT_TIME)) { //if enough time has passed to start a new loop
 
-				std::cout<<"INDEX: "<< gp->gearpickup_index <<std::endl;
+				//std::cout << "INDEX: " << gp->gearpickup_index << std::endl;
 				//std::cout<<"Target: "<< gear_profile.at(0).at(gp->gearpickup_index) <<std::endl;
 
 				profile = *ref_pos;
@@ -426,9 +425,17 @@ void GroundPickup::MoveWrapper(GroundPickup *gp, int *ref_pos) {
 				}
 				last_ref = profile;
 
-				gp->MoveArm(gear_profile.at(0).at(gp->gearpickup_index),
-						gear_profile.at(1).at(gp->gearpickup_index)); //took this out to test
-				std::cout<<"Target: "<< gear_profile.at(0).at(gp->gearpickup_index) <<std::endl;
+				if (profile == 1) {
+					gp->MoveArm(gear_profile.at(0).at(gp->gearpickup_index),
+							0.0); //see if all you need to do is not have velocity motion profiles
+					std::cout<<"HERE"<<std::endl;
+				} else {
+					gp->MoveArm(gear_profile.at(0).at(gp->gearpickup_index),
+							gear_profile.at(1).at(gp->gearpickup_index));
+				}
+				std::cout << "Target: "
+						<< gear_profile.at(0).at(gp->gearpickup_index)
+						<< std::endl;
 
 				//std::cout << "ref" << *ref_pos << std::endl;
 

@@ -64,7 +64,7 @@ TeleopStateMachine::TeleopStateMachine(Flywheel *flywheelP, Conveyor *conveyorP,
 
 void TeleopStateMachine::StateMachine(bool is_gear, bool is_close_gear,
 bool is_fire, bool is_climb,
-bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bool gear_pickup_button, bool gear_score_button, bool is_intake, bool is_outtake, bool is_arm_up, bool is_arm_down) {
+bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bool gear_pickup_button, bool gear_score_button, bool is_intake, bool is_outtake, bool is_arm_up, bool is_arm_down, bool is_at_pos) {
 
 	if (fly_wheel->IsAtSpeedRight() && fly_wheel->IsAtSpeedLeft()) {
 
@@ -298,7 +298,7 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 		SmartDashboard::PutString("State", "Gear In");
 
-		std::cout << "current" << ground_pickup->canTalonPickupWheel->GetOutputCurrent() << std::endl;
+		//std::cout << "current" << ground_pickup->canTalonPickupWheel->GetOutputCurrent() << std::endl;
 
 		if(return_button) {
 
@@ -312,7 +312,7 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 		if (ground_pickup->CheckSpinCurrent() >= ground_pickup->MAX_SPIN_CURRENT) { //gear is in
 
-			ground_pickup->ground_pickup_state = ground_pickup->arm_up_state_h;
+			ground_pickup->ground_pickup_state = ground_pickup->arm_up_spin_in_state_h;
 
 			state  = wait_for_button_state;
 
@@ -334,9 +334,9 @@ bool return_button, bool is_popcorn, bool is_second_fire, bool is_stop_shoot, bo
 
 		ground_pickup->ground_pickup_state = ground_pickup->arm_down_spin_out_state_h;
 
-		if(ground_pickup->IsAtPosition()) {
+		if(is_at_pos) {
 
-			ground_pickup->ground_pickup_state = ground_pickup->arm_up_state_h;
+			ground_pickup->ground_pickup_state = ground_pickup->arm_down_state_h;
 			state = wait_for_button_state;
 
 		}

@@ -29,7 +29,7 @@ public:
 			bool is_climb, bool is_ret, bool is_popcorn,
 			bool second_fire_button, bool stop_shoot_button,
 			bool gear_pickup_button, bool gear_score_button,
-			bool is_intake, bool is_outtake, bool is_arm_up, bool is_arm_down);
+			bool is_intake, bool is_outtake, bool is_arm_up, bool is_arm_down, bool is_at_pos);
 	void Initialize();
 
 };

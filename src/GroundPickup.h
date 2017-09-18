@@ -25,7 +25,7 @@ public:
 
 	void ZeroPos();
 	double GetPos();
-	void SetPos(int pos);
+	void SetPos(double pos);
 
 	void MoveArm(double ref, double profileVelocity);
 
